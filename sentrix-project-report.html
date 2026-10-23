@@ -1,0 +1,431 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SENTRIX — Project Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header {
+    border-left: 4px solid #3b82d4;
+    padding: 16px 20px;
+    background: #f7f8fa;
+    margin-bottom: 28px;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; color: #1f2328; letter-spacing: -0.3px; }
+  .header .subtitle { color: #57606a; font-size: 13px; margin-top: 4px; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .badge {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 3px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-gray  { background: #f1f5f9; color: #475569; border: 1px solid #e5e7eb; }
+  .badge-red   { background: #fee2e2; color: #b91c1c; }
+
+  /* ── Section headings ── */
+  h2 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: #57606a;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 5px; margin: 28px 0 14px;
+  }
+  h3 { font-size: 14px; font-weight: 600; color: #1f2328; margin-bottom: 8px; }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0; margin: 14px 0 6px;
+  }
+  .pipe-step {
+    background: #f7f8fa; border: 1px solid #e5e7eb;
+    border-radius: 4px; padding: 7px 12px;
+    font-size: 12px; font-weight: 600; color: #1f2328;
+    white-space: nowrap;
+  }
+  .pipe-arrow {
+    color: #3b82d4; font-weight: 700; padding: 0 6px;
+    font-size: 15px; line-height: 1;
+  }
+  .pipe-step.accent { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+  .pipe-step.green  { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+
+  /* ── Two-column grid ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 4px; }
+  @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* ── Cards ── */
+  .card {
+    background: #f7f8fa; border: 1px solid #e5e7eb;
+    border-radius: 6px; padding: 14px 16px;
+  }
+  .card h3 { font-size: 13px; margin-bottom: 6px; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  th {
+    background: #f7f8fa; text-align: left;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #57606a;
+    padding: 7px 10px; border-bottom: 2px solid #e5e7eb;
+  }
+  td { padding: 6px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f7f8fa; }
+
+  /* ── Score bar ── */
+  .score-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+  .score-label { font-size: 12px; color: #57606a; width: 160px; flex-shrink: 0; }
+  .score-bar-wrap { flex: 1; background: #e5e7eb; border-radius: 3px; height: 8px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 3px; }
+  .score-val { font-size: 12px; font-weight: 700; width: 32px; text-align: right; color: #1f2328; }
+  .bar-red    { background: #ef4444; }
+  .bar-orange { background: #f97316; }
+  .bar-yellow { background: #eab308; }
+  .bar-green  { background: #22c55e; }
+
+  /* ── Decision pills ── */
+  .decision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .decision-pill {
+    border-radius: 6px; padding: 10px 14px;
+    border-left: 4px solid;
+  }
+  .d-red    { border-color: #ef4444; background: #fef2f2; }
+  .d-yellow { border-color: #eab308; background: #fefce8; }
+  .d-blue   { border-color: #3b82f6; background: #eff6ff; }
+  .d-purple { border-color: #8b5cf6; background: #f5f3ff; }
+  .decision-pill .d-label { font-weight: 700; font-size: 12px; margin-bottom: 3px; }
+  .decision-pill .d-desc  { font-size: 12px; color: #57606a; }
+
+  /* ── MITRE technique table ── */
+  .technique-id { font-family: monospace; font-size: 12px; color: #3b82d4; font-weight: 600; }
+  .tactic-tag {
+    display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px;
+    border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .tac-initial  { background: #fee2e2; color: #b91c1c; }
+  .tac-persist  { background: #fef3c7; color: #92400e; }
+  .tac-impact   { background: #fce7f3; color: #9d174d; }
+  .tac-exfil    { background: #e0e7ff; color: #3730a3; }
+  .tac-lateral  { background: #d1fae5; color: #065f46; }
+  .tac-evasion  { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+  .tac-exec     { background: #ede9fe; color: #5b21b6; }
+  .tac-cred     { background: #fff7ed; color: #9a3412; }
+  .tac-collect  { background: #ecfeff; color: #155e75; }
+  .tac-c2       { background: #f0fdf4; color: #166534; }
+  .tac-disc     { background: #fafafa; color: #374151; border: 1px solid #e5e7eb; }
+
+  /* ── Feed table ── */
+  .feed-conf { display: inline-block; width: 50px; height: 6px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+
+  /* ── Scenario results table ── */
+  .level-critical { color: #b91c1c; font-weight: 700; }
+  .level-high     { color: #c2410c; font-weight: 700; }
+  .level-medium   { color: #a16207; font-weight: 600; }
+  .level-low      { color: #166534; font-weight: 600; }
+  .dec-contain  { color: #b91c1c; font-weight: 700; }
+  .dec-preserve { color: #a16207; font-weight: 700; }
+  .dec-monitor  { color: #1d4ed8; font-weight: 600; }
+  .dec-escalate { color: #6d28d9; font-weight: 600; }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 48px; padding-top: 14px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center; font-size: 12px; color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="header">
+    <h1>SENTRIX</h1>
+    <div class="subtitle">Cyber Threat Detection &amp; Intelligent Response System  ·  Project Report  ·  v1.0</div>
+    <div class="badges">
+      <span class="badge badge-blue">Python 3.9+</span>
+      <span class="badge badge-green">Zero Dependencies</span>
+      <span class="badge badge-red">10 Attack Scenarios</span>
+      <span class="badge badge-gray">MITRE ATT&amp;CK v14</span>
+      <span class="badge badge-gray">4 TI Feeds</span>
+      <span class="badge badge-gray">RFC 3227 Evidence</span>
+    </div>
+  </div>
+
+  
+  <h2>Executive Summary</h2>
+  <p style="color:#57606a;font-size:13px;line-height:1.7">
+    SENTRIX is an autonomous cybersecurity incident response pipeline that detects a
+    cyberattack, assesses its multi-dimensional risk, enriches findings with live
+    threat intelligence and MITRE ATT&amp;CK context, and then intelligently decides
+    whether to <strong>contain the threat immediately</strong> or
+    <strong>preserve critical digital evidence first</strong> — before executing a
+    complete, prioritised response playbook. The system models four competing
+    dimensions — threat severity, evidence volatility, attacker activity, and asset
+    criticality — and applies feed-driven and ATT&amp;CK-driven score boosts to
+    produce decisions grounded in real-world forensic and incident-response best practices.
+  </p>
+
+  
+  <h2>Pipeline Architecture</h2>
+  <div class="pipeline">
+    <div class="pipe-step">1. Detect</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step">2. Collect Evidence</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step">3. Assess</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step accent">4. TI Enrich</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step accent">5. ATT&amp;CK Map</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step">6. Decide</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step green">7. Contain</div>
+  </div>
+  <p style="font-size:12px;color:#57606a;margin-top:8px">
+    All stages are wired by <code>SentrixOrchestrator</code>. Stages 4–5 apply additive score boosts to the base assessment before the decision engine runs.
+  </p>
+
+  
+  <h2>Modules</h2>
+  <table>
+    <thead><tr><th>File</th><th>Module</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td class="technique-id">models.py</td><td>Data Models</td><td>All dataclasses, enumerations, and type contracts</td></tr>
+      <tr><td class="technique-id">detector.py</td><td>Threat Detector</td><td>Generates realistic IOC-rich DetectionEvents for 10 attack types</td></tr>
+      <tr><td class="technique-id">evidence.py</td><td>Evidence Collector</td><td>RFC 3227 / NIST 800-86 volatility-ranked evidence catalogues</td></tr>
+      <tr><td class="technique-id">assessor.py</td><td>Threat Assessor</td><td>4-dimension weighted scoring with indicator-driven adjustments</td></tr>
+      <tr><td class="technique-id">threat_intel.py</td><td>TI Aggregator</td><td>VirusTotal, AbuseIPDB, AlienVault OTX, Internal STIX/TAXII feeds</td></tr>
+      <tr><td class="technique-id">mitre.py</td><td>MITRE Mapper</td><td>ATT&amp;CK Enterprise v14 techniques, tactics, mitigations, detections</td></tr>
+      <tr><td class="technique-id">decision.py</td><td>Decision Engine</td><td>Response strategy selection + attack-specific playbook generation</td></tr>
+      <tr><td class="technique-id">containment.py</td><td>Containment Executor</td><td>Ordered execution of the response plan actions</td></tr>
+      <tr><td class="technique-id">orchestrator.py</td><td>Orchestrator</td><td>Full pipeline wiring and enrichment score application</td></tr>
+      <tr><td class="technique-id">main.py</td><td>CLI</td><td>Colour terminal output, full reports, summary table</td></tr>
+    </tbody>
+  </table>
+
+  
+  <h2>Scoring Engine</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Composite Formula</h3>
+      <table style="font-size:12px">
+        <thead><tr><th>Dimension</th><th>Weight</th></tr></thead>
+        <tbody>
+          <tr><td>Threat Severity</td><td><strong>35%</strong></td></tr>
+          <tr><td>Evidence Volatility</td><td><strong>25%</strong></td></tr>
+          <tr><td>Attacker Activity</td><td><strong>25%</strong></td></tr>
+          <tr><td>Asset Criticality</td><td><strong>15%</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Enrichment Boosts</h3>
+      <table style="font-size:12px">
+        <thead><tr><th>Signal</th><th>Boost</th></tr></thead>
+        <tbody>
+          <tr><td>High-confidence TI feed hit (≥80%)</td><td>+2.5 / hit</td></tr>
+          <tr><td>Internal watchlist confirmation</td><td>+5.0</td></tr>
+          <tr><td>MITRE high-impact tactic</td><td>+2.0 / tactic</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:14px">
+    <h3 style="font-size:13px;margin-bottom:8px">Dynamic Indicator Adjustments</h3>
+    <div class="score-row"><span class="score-label">High-entropy file (&gt;7.5 bits)</span><div class="score-bar-wrap"><div class="score-bar bar-red" style="width:50%"></div></div><span class="score-val">+5</span></div>
+    <div class="score-row"><span class="score-label">Process running as SYSTEM/root</span><div class="score-bar-wrap"><div class="score-bar bar-orange" style="width:40%"></div></div><span class="score-val">+4</span></div>
+    <div class="score-row"><span class="score-label">Executable in %TEMP% / /tmp</span><div class="score-bar-wrap"><div class="score-bar bar-yellow" style="width:30%"></div></div><span class="score-val">+3</span></div>
+    <div class="score-row"><span class="score-label">Memory evidence identified</span><div class="score-bar-wrap"><div class="score-bar bar-red" style="width:80%"></div></div><span class="score-val">+8 vol</span></div>
+    <div class="score-row"><span class="score-label">Active high-anomaly connections</span><div class="score-bar-wrap"><div class="score-bar bar-orange" style="width:50%"></div></div><span class="score-val">+5 vol</span></div>
+    <div class="score-row"><span class="score-label">Traffic to 3+ destination IPs</span><div class="score-bar-wrap"><div class="score-bar bar-red" style="width:80%"></div></div><span class="score-val">+8 act</span></div>
+    <div class="score-row"><span class="score-label">Process CPU &gt; 40%</span><div class="score-bar-wrap"><div class="score-bar bar-orange" style="width:50%"></div></div><span class="score-val">+5 act</span></div>
+    <div class="score-row"><span class="score-label">High packet-count flow (&gt;10K pkts)</span><div class="score-bar-wrap"><div class="score-bar bar-yellow" style="width:60%"></div></div><span class="score-val">+6 act</span></div>
+  </div>
+
+  
+  <h2>Response Decision Matrix</h2>
+  <div class="decision-grid">
+    <div class="decision-pill d-red">
+      <div class="d-label">🔴 CONTAIN IMMEDIATELY</div>
+      <div class="d-desc">CRITICAL threat + activity ≥85  |  Lateral movement active  |  Ransomware encrypting  |  CRITICAL asset under HIGH+ threat</div>
+    </div>
+    <div class="decision-pill d-yellow">
+      <div class="d-label">🟡 PRESERVE EVIDENCE FIRST</div>
+      <div class="d-desc">Evidence volatility ≥80 + threat ≥65  |  APT / Zero-Day / Insider + volatility ≥70. Short capture window before containment.</div>
+    </div>
+    <div class="decision-pill d-blue">
+      <div class="d-label">🔵 MONITOR &amp; ALERT</div>
+      <div class="d-desc">LOW or INFORMATIONAL threat level  |  Composite score &lt;50. Increase sensor fidelity; do not disrupt operations yet.</div>
+    </div>
+    <div class="decision-pill d-purple">
+      <div class="d-label">🟣 ESCALATE TO HUMAN</div>
+      <div class="d-desc">Confidence &lt;60%  |  Ambiguous profile (DDoS, Insider Threat). Legal or HR factors require human judgement before action.</div>
+    </div>
+  </div>
+
+  
+  <h2>Scenario Results (All 10 Attack Types)</h2>
+  <table>
+    <thead><tr><th>Attack Type</th><th>Level</th><th>Score</th><th>Decision</th><th>Response Window</th></tr></thead>
+    <tbody>
+      <tr><td>Ransomware</td><td class="level-critical">CRITICAL</td><td>100.0</td><td class="dec-contain">CONTAIN IMMEDIATELY</td><td>60 s</td></tr>
+      <tr><td>Advanced Persistent Threat</td><td class="level-critical">CRITICAL</td><td>92.5</td><td class="dec-preserve">PRESERVE EVIDENCE FIRST</td><td>300 s</td></tr>
+      <tr><td>Zero-Day Exploit</td><td class="level-critical">CRITICAL</td><td>99.5</td><td class="dec-contain">CONTAIN IMMEDIATELY</td><td>60 s</td></tr>
+      <tr><td>Lateral Movement</td><td class="level-high">HIGH</td><td>96.1</td><td class="dec-contain">CONTAIN IMMEDIATELY</td><td>60 s</td></tr>
+      <tr><td>Data Exfiltration</td><td class="level-high">HIGH</td><td>100.0</td><td class="dec-contain">CONTAIN IMMEDIATELY</td><td>60 s</td></tr>
+      <tr><td>Privilege Escalation</td><td class="level-high">HIGH</td><td>80.4</td><td class="dec-contain">CONTAIN IMMEDIATELY</td><td>60 s</td></tr>
+      <tr><td>Malware Infection</td><td class="level-medium">MEDIUM</td><td>73.3</td><td class="dec-preserve">PRESERVE EVIDENCE FIRST</td><td>300 s</td></tr>
+      <tr><td>Insider Threat</td><td class="level-medium">MEDIUM</td><td>63.5</td><td class="dec-escalate">ESCALATE TO HUMAN</td><td>600 s</td></tr>
+      <tr><td>Distributed Denial of Service</td><td class="level-medium">MEDIUM</td><td>60.5</td><td class="dec-escalate">ESCALATE TO HUMAN</td><td>600 s</td></tr>
+      <tr><td>Phishing / Credential Theft</td><td class="level-low">LOW</td><td>64.0</td><td class="dec-monitor">MONITOR &amp; ALERT</td><td>900 s</td></tr>
+    </tbody>
+  </table>
+
+  
+  <h2>Threat Intelligence Feed Integration</h2>
+  <table>
+    <thead><tr><th>Feed</th><th>Type</th><th>Data Provided</th><th>Confidence Model</th></tr></thead>
+    <tbody>
+      <tr><td><strong>VirusTotal</strong></td><td>Multi-AV / Community</td><td>IP reputation, file hash analysis, threat family names</td><td>malicious / total engines ratio</td></tr>
+      <tr><td><strong>AbuseIPDB</strong></td><td>Community Reporting</td><td>IP abuse confidence score, country, ASN</td><td>0–100 percentage scale</td></tr>
+      <tr><td><strong>AlienVault OTX</strong></td><td>Open Threat Exchange</td><td>Pulse / campaign association, community tags</td><td>Binary hit with 0.82 default conf</td></tr>
+      <tr><td><strong>Internal STIX/TAXII</strong></td><td>Enterprise Private</td><td>Organisation watchlist hits, contextual labels</td><td>0.90 fixed confidence</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#57606a;margin-top:8px">
+    Feeds are queried in parallel per event. Hits from multiple feeds are deduplicated by (provider, IOC value).
+    Actor attribution (threat actor name, campaign, nation-state) is resolved from IP-specific data first,
+    with per-attack-type defaults as fallback.
+  </p>
+
+  
+  <h2>MITRE ATT&amp;CK Mapping (Enterprise v14)</h2>
+  <table>
+    <thead><tr><th>Attack Type</th><th>Techniques</th><th>Primary Tactic</th><th>Kill-Chain Stage</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Ransomware</td>
+        <td>
+          <span class="technique-id">T1566.001</span> <span class="technique-id">T1059.001</span>
+          <span class="technique-id">T1490</span> <span class="technique-id">T1486</span>
+          <span class="technique-id">T1489</span> <span class="technique-id">T1041</span>
+        </td>
+        <td><span class="tactic-tag tac-impact">TA0040 Impact</span></td>
+        <td>Actions on Objectives</td>
+      </tr>
+      <tr>
+        <td>APT</td>
+        <td>
+          <span class="technique-id">T1195.002</span> <span class="technique-id">T1055.001</span>
+          <span class="technique-id">T1053.005</span> <span class="technique-id">T1071.001</span>
+          <span class="technique-id">T1027.002</span> <span class="technique-id">T1078</span>
+        </td>
+        <td><span class="tactic-tag tac-persist">TA0003 Persistence</span></td>
+        <td>Persistence &amp; C2</td>
+      </tr>
+      <tr>
+        <td>Lateral Movement</td>
+        <td>
+          <span class="technique-id">T1550.002</span> <span class="technique-id">T1021.002</span>
+          <span class="technique-id">T1047</span> <span class="technique-id">T1558.003</span>
+          <span class="technique-id">T1003.001</span>
+        </td>
+        <td><span class="tactic-tag tac-lateral">TA0008 Lateral Movement</span></td>
+        <td>Lateral Movement &amp; Credential Access</td>
+      </tr>
+      <tr>
+        <td>Data Exfiltration</td>
+        <td>
+          <span class="technique-id">T1048.002</span> <span class="technique-id">T1048.001</span>
+          <span class="technique-id">T1560.001</span> <span class="technique-id">T1213</span>
+          <span class="technique-id">T1083</span>
+        </td>
+        <td><span class="tactic-tag tac-exfil">TA0010 Exfiltration</span></td>
+        <td>Collection &amp; Exfiltration</td>
+      </tr>
+      <tr>
+        <td>Zero-Day</td>
+        <td>
+          <span class="technique-id">T1190</span> <span class="technique-id">T1505.003</span>
+          <span class="technique-id">T1059.007</span> <span class="technique-id">T1210</span>
+        </td>
+        <td><span class="tactic-tag tac-initial">TA0001 Initial Access</span></td>
+        <td>Initial Access &amp; Exploitation</td>
+      </tr>
+      <tr>
+        <td>Privilege Escalation</td>
+        <td>
+          <span class="technique-id">T1068</span> <span class="technique-id">T1055</span>
+          <span class="technique-id">T1548.001</span> <span class="technique-id">T1136.001</span>
+        </td>
+        <td><span class="tactic-tag tac-evasion">TA0004 Priv. Escalation</span></td>
+        <td>Privilege Escalation &amp; Defense Evasion</td>
+      </tr>
+      <tr>
+        <td>Phishing</td>
+        <td>
+          <span class="technique-id">T1566.002</span> <span class="technique-id">T1539</span>
+          <span class="technique-id">T1056.003</span> <span class="technique-id">T1176</span>
+        </td>
+        <td><span class="tactic-tag tac-initial">TA0001 Initial Access</span></td>
+        <td>Initial Access &amp; Credential Access</td>
+      </tr>
+    </tbody>
+  </table>
+
+  
+  <h2>Evidence Volatility Order (RFC 3227 / NIST 800-86)</h2>
+  <table>
+    <thead><tr><th>Rank</th><th>Category</th><th>Examples</th><th>Window</th></tr></thead>
+    <tbody>
+      <tr><td><strong style="color:#b91c1c">1 — Critical</strong></td><td>Memory / CPU state</td><td>Full RAM dump (8 GB), ARP cache, LSASS memory, encryption keys</td><td>&lt; 1 min</td></tr>
+      <tr><td><strong style="color:#c2410c">2 — High</strong></td><td>Active sessions</td><td>Network connections, login sessions, running process list, VSS inventory</td><td>1–5 min</td></tr>
+      <tr><td><strong style="color:#a16207">3 — Medium</strong></td><td>Process artefacts</td><td>Process images, heap dumps, persistence artefacts (registry/tasks)</td><td>5–30 min</td></tr>
+      <tr><td><strong style="color:#166534">4 — Low</strong></td><td>Disk artefacts</td><td>Malware binaries, encrypted file samples, dropped tools</td><td>Hours</td></tr>
+      <tr><td><strong style="color:#374151">5 — Stable</strong></td><td>Logs</td><td>Windows Event Logs, SIEM events, proxy/web server logs</td><td>Days</td></tr>
+    </tbody>
+  </table>
+
+  
+  <h2>Usage &amp; Requirements</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>CLI Commands</h3>
+      <table style="font-size:12px">
+        <tbody>
+          <tr><td><code>python main.py</code></td><td>Random scenario</td></tr>
+          <tr><td><code>python main.py ransomware</code></td><td>Specific scenario</td></tr>
+          <tr><td><code>python main.py all</code></td><td>Summary table (all 10)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Requirements</h3>
+      <table style="font-size:12px">
+        <tbody>
+          <tr><td>Python</td><td>3.9 or newer</td></tr>
+          <tr><td>Dependencies</td><td>None (stdlib only)</td></tr>
+          <tr><td>OS</td><td>Windows / Linux / macOS</td></tr>
+          <tr><td>Install</td><td><code>python main.py</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  
+  <div class="footer">
+    Made with IBM Bob
+  </div>
+
+</div>
+</body>
+</html>

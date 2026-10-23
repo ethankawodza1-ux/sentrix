@@ -1,0 +1,45 @@
+# SENTRIX — Python Requirements
+# ================================
+# SENTRIX uses ONLY the Python standard library.
+# No pip install is required.
+#
+# Minimum Python version: 3.9
+# Tested on:             Python 3.9, 3.10, 3.11, 3.12, 3.13
+#
+# Standard library modules used:
+#   dataclasses, enum, typing, datetime, uuid, random,
+#   hashlib, time, sys, os, io, textwrap
+#
+# ─────────────────────────────────────────────────────────────
+# Optional: production integrations (not required for the demo)
+# ─────────────────────────────────────────────────────────────
+# Uncomment the packages below when connecting SENTRIX to real
+# external systems:
+
+# --- Threat Intelligence APIs ---
+# requests>=2.31.0          # HTTP client for VirusTotal, AbuseIPDB, OTX REST APIs
+# vt-py>=0.18.0             # Official VirusTotal Python SDK
+# OTXv2>=1.5.12             # AlienVault OTX Python SDK
+
+# --- STIX / TAXII (enterprise threat intel sharing) ---
+# stix2>=3.0.1              # STIX 2.1 parsing and authoring
+# taxii2-client>=2.3.0      # TAXII 2.1 client for internal feeds
+
+# --- MITRE ATT&CK (live matrix updates) ---
+# mitreattack-python>=2.0.4 # Official MITRE ATT&CK Python library
+
+# --- SOAR / Orchestration connectors ---
+# splunk-sdk>=2.0.0         # Splunk SIEM integration
+# pycortex>=1.0             # Cortex XSOAR (PAN) integration
+
+# --- EDR agent connectors ---
+# crowdstrike-falconpy>=1.3 # CrowdStrike Falcon EDR SDK
+# py-cb-api>=1.3.6          # VMware Carbon Black EDR SDK
+
+# --- Forensics / memory acquisition ---
+# pywin32>=306              # Windows API access (Windows only)
+
+# --- Output / reporting ---
+# rich>=13.7.0              # Rich terminal formatting (drop-in upgrade for CLI)
+# jinja2>=3.1.3             # HTML report templating
+# reportlab>=4.1.0          # PDF report generation

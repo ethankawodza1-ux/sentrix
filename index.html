@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SENTRIX — Cyber Threat Detection & Response</title>
+<style>
+/* ── Reset & base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e17;--surface:#111827;--surface2:#1a2235;--border:#1e293b;
+  --text:#e2e8f0;--muted:#64748b;--accent:#3b82f6;--accent2:#6366f1;
+  --red:#ef4444;--orange:#f97316;--yellow:#eab308;--green:#22c55e;--purple:#8b5cf6;
+  --critical:#ef4444;--high:#f97316;--medium:#eab308;--low:#22c55e;
+  --font:-apple-system,"Segoe UI",system-ui,sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+code{font-family:"Cascadia Code","Fira Code",monospace;font-size:12px;background:#0f172a;padding:1px 5px;border-radius:3px;color:#93c5fd}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;min-height:100vh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;padding:0 20px;gap:16px;
+  background:#0d1424;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-size:18px;font-weight:800;letter-spacing:1.5px;color:#fff;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:11px;color:var(--muted);letter-spacing:0.5px;margin-top:-2px}
+.topbar-spacer{flex:1}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.status-text{font-size:12px;color:var(--green)}
+
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto}
+.nav-section{padding:8px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;
+  border-left:3px solid transparent;transition:all .15s;color:var(--muted);font-size:13px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent);color:var(--accent)}
+.nav-icon{width:16px;text-align:center;font-size:14px}
+.nav-badge{margin-left:auto;font-size:10px;background:var(--accent);color:#fff;
+  padding:1px 6px;border-radius:10px;font-weight:700}
+
+.main{overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;background:var(--surface2)}
+.card-header h2{font-size:14px;font-weight:600;color:var(--text)}
+.card-header .subtitle{font-size:12px;color:var(--muted);margin-left:auto}
+.card-body{padding:18px}
+
+/* ── Run panel ── */
+.run-panel{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+select,input{background:#0f172a;border:1px solid var(--border);color:var(--text);
+  padding:9px 12px;border-radius:6px;font-size:13px;font-family:var(--font);width:100%;
+  transition:border-color .15s}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+.btn{padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;
+  border:none;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-primary:disabled{background:#1e3a5f;color:var(--muted);cursor:not-allowed}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border)}
+
+/* ── Loading spinner ── */
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.spinner.active{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Metric tiles ── */
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.metric{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.metric.threat::before{background:var(--accent)}
+.metric.severity::before{background:var(--red)}
+.metric.volatility::before{background:var(--orange)}
+.metric.activity::before{background:var(--yellow)}
+.metric.criticality::before{background:var(--purple)}
+.metric-val{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* ── Decision banner ── */
+.decision-banner{border-radius:8px;padding:20px 24px;display:flex;align-items:center;gap:20px;
+  border:1px solid;margin-bottom:2px}
+.decision-icon{font-size:36px;line-height:1;flex-shrink:0}
+.decision-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin-bottom:3px}
+.decision-value{font-size:20px;font-weight:800;letter-spacing:.5px}
+.decision-meta{margin-left:auto;text-align:right}
+.decision-meta .priority{font-size:24px;font-weight:800}
+.decision-meta .meta-label{font-size:11px;color:inherit;opacity:.7}
+.decision-meta .eta{font-size:13px;margin-top:4px;opacity:.8}
+
+/* ── Score bars ── */
+.score-rows{display:flex;flex-direction:column;gap:10px}
+.score-row{display:grid;grid-template-columns:160px 1fr 50px;align-items:center;gap:12px}
+.score-row-label{font-size:12px;color:var(--muted)}
+.score-bar-track{background:#0f172a;border-radius:4px;height:10px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.score-row-val{font-size:13px;font-weight:700;text-align:right}
+
+/* ── Risk flags ── */
+.risk-flags{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.flag{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:5px}
+.flag.on{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.flag.off{background:rgba(100,116,139,.08);color:var(--muted);border:1px solid var(--border)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);padding:0 18px}
+.tab{padding:10px 14px;font-size:13px;cursor:pointer;color:var(--muted);
+  border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-count{font-size:10px;background:var(--surface2);padding:1px 5px;border-radius:3px;margin-left:4px}
+.tab-panel{display:none;padding:18px}
+.tab-panel.active{display:block}
+
+/* ── Tables ── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{background:#0f172a;text-align:left;padding:8px 10px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);border-bottom:1px solid var(--border)}
+.data-table td{padding:8px 10px;border-bottom:1px solid rgba(30,41,59,.5);vertical-align:top}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(30,41,59,.4)}
+.mono{font-family:"Cascadia Code","Fira Code",monospace;font-size:11px}
+.score-pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600}
+.truncate{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Badge / pill ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.badge-red   {background:rgba(239,68,68,.15);color:var(--red)}
+.badge-orange{background:rgba(249,115,22,.15);color:var(--orange)}
+.badge-yellow{background:rgba(234,179,8,.15); color:var(--yellow)}
+.badge-green {background:rgba(34,197,94,.15); color:var(--green)}
+.badge-blue  {background:rgba(59,130,246,.15);color:var(--accent)}
+.badge-purple{background:rgba(139,92,246,.15);color:var(--purple)}
+.badge-gray  {background:rgba(100,116,139,.12);color:var(--muted)}
+
+/* ── Action list ── */
+.action-list{display:flex;flex-direction:column;gap:6px}
+.action-item{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;
+  background:#0f172a;border-radius:6px;border-left:3px solid}
+.action-item.immediate{border-color:var(--accent)}
+.action-item.contain{border-color:var(--red)}
+.action-item.forensic{border-color:var(--purple)}
+.action-item.evidence{border-color:var(--orange)}
+.action-item .act-tag{font-size:10px;font-weight:700;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:1px}
+.action-item .act-text{font-size:12px;color:var(--text);line-height:1.5}
+
+/* ── IOC tables ── */
+.ioc-section{margin-bottom:16px}
+.ioc-section h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.entropy-bar{display:inline-block;width:60px;height:6px;background:var(--border);
+  border-radius:3px;vertical-align:middle;overflow:hidden}
+.entropy-fill{height:100%;border-radius:3px}
+
+/* ── MITRE techniques ── */
+.technique-row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;
+  background:#0f172a;border-radius:6px;border:1px solid var(--border)}
+.technique-id{font-family:monospace;font-size:13px;font-weight:700;color:var(--accent);
+  flex-shrink:0;min-width:80px}
+.technique-body{flex:1}
+.technique-name{font-size:13px;font-weight:600;color:var(--text)}
+.technique-tactic{font-size:11px;margin-top:2px}
+.technique-mitigations{font-size:11px;color:var(--muted);margin-top:4px}
+.techniques-grid{display:flex;flex-direction:column;gap:8px}
+
+/* ── TI feed hits ── */
+.feed-hit{display:grid;grid-template-columns:160px 1fr 80px;gap:10px;
+  align-items:center;padding:8px 12px;background:#0f172a;
+  border-radius:6px;border:1px solid var(--border)}
+.feed-name{font-size:12px;font-weight:600;color:var(--muted)}
+.feed-ioc{font-family:monospace;font-size:11px;color:var(--accent)}
+.conf-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:3px}
+.conf-fill{height:100%;border-radius:3px;background:var(--green)}
+
+/* ── Evidence items ── */
+.evidence-item{display:grid;grid-template-columns:90px 1fr auto;gap:12px;
+  align-items:center;padding:10px 12px;background:#0f172a;
+  border-radius:6px;border-left:3px solid}
+.ev-rank-1,.ev-rank-2{border-color:var(--red)}
+.ev-rank-3{border-color:var(--yellow)}
+.ev-rank-4,.ev-rank-5{border-color:var(--green)}
+.ev-rank-badge{font-size:10px;font-weight:700;text-transform:uppercase;text-align:center}
+.ev-desc{font-size:12px;color:var(--text)}
+.ev-method{font-size:11px;color:var(--muted);margin-top:2px}
+.ev-size{font-size:12px;font-weight:700;color:var(--muted);text-align:right;white-space:nowrap}
+
+/* ── Exec log ── */
+.log-item{display:flex;align-items:flex-start;gap:8px;padding:5px 0;
+  border-bottom:1px solid rgba(30,41,59,.4);font-size:12px}
+.log-item:last-child{border-bottom:none}
+.log-status{flex-shrink:0;width:36px;font-weight:700;font-size:11px;margin-top:1px}
+.log-ok{color:var(--green)}
+.log-fail{color:var(--red)}
+.log-text{color:var(--muted);font-family:monospace;font-size:11px;word-break:break-all}
+
+/* ── Scenario list view ── */
+.scenario-table-wrap{overflow-x:auto}
+.sc-row{cursor:pointer}
+.sc-row:hover td{background:rgba(59,130,246,.05)}
+.decision-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+/* ── Log raw ── */
+.log-pre{background:#0a0e17;border:1px solid var(--border);border-radius:6px;
+  padding:12px;font-family:monospace;font-size:11px;color:#7dd3fc;
+  white-space:pre-wrap;word-break:break-word;max-height:160px;overflow-y:auto;line-height:1.6}
+
+/* ── Empty state ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;text-align:center;color:var(--muted);gap:12px}
+.empty-icon{font-size:48px;opacity:.3}
+.empty-state h3{font-size:15px;color:var(--text);opacity:.6}
+.empty-state p{font-size:13px;max-width:320px}
+
+/* ── Reasoning list ── */
+.reasoning-list{display:flex;flex-direction:column;gap:6px}
+.reasoning-item{padding:8px 12px;background:#0f172a;border-radius:5px;
+  font-size:12px;color:var(--muted);border-left:2px solid var(--border);line-height:1.5}
+.reasoning-item.section{border-left-color:var(--accent);color:var(--accent);
+  font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── Notification list ── */
+.notif-item{display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:#0f172a;border-radius:5px;font-size:12px}
+.notif-icon{font-size:14px}
+
+/* ── Confidence ring (SVG) ── */
+.conf-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.conf-ring-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+/* ── Section headers ── */
+.section-title{font-size:13px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;
+  padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .run-panel{grid-template-columns:1fr;gap:8px}
+}
+@media(max-width:600px){
+  .metrics-grid{grid-template-columns:1fr 1fr}
+  .score-row{grid-template-columns:120px 1fr 40px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ TOPBAR ══════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <div>
+    <div class="logo">SENTRIX</div>
+    <div class="logo-sub">Cyber Threat Detection &amp; Response</div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="pulse-dot"></div>
+  <span class="status-text" id="status-text">System Online</span>
+</header>
+
+<!-- ══ SIDEBAR ════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="nav-section">Console</div>
+  <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard',this)">
+    <span class="nav-icon">⬡</span> Dashboard
+  </div>
+  <div class="nav-item" data-view="scenarios" onclick="switchView('scenarios',this)">
+    <span class="nav-icon">◈</span> All Scenarios
+    <span class="nav-badge">10</span>
+  </div>
+
+  <div class="nav-section" style="margin-top:8px">Analysis</div>
+  <div class="nav-item" data-view="detection" onclick="switchView('detection',this)">
+    <span class="nav-icon">◎</span> Detection
+  </div>
+  <div class="nav-item" data-view="assessment" onclick="switchView('assessment',this)">
+    <span class="nav-icon">◐</span> Assessment
+  </div>
+  <div class="nav-item" data-view="intel" onclick="switchView('intel',this)">
+    <span class="nav-icon">◆</span> Threat Intel
+  </div>
+  <div class="nav-item" data-view="mitre" onclick="switchView('mitre',this)">
+    <span class="nav-icon">◇</span> MITRE ATT&amp;CK
+  </div>
+
+  <div class="nav-section" style="margin-top:8px">Response</div>
+  <div class="nav-item" data-view="evidence" onclick="switchView('evidence',this)">
+    <span class="nav-icon">▣</span> Evidence
+  </div>
+  <div class="nav-item" data-view="playbook" onclick="switchView('playbook',this)">
+    <span class="nav-icon">▤</span> Playbook
+  </div>
+  <div class="nav-item" data-view="execlog" onclick="switchView('execlog',this)">
+    <span class="nav-icon">▥</span> Execution Log
+  </div>
+</nav>
+
+<!-- ══ MAIN CONTENT ═══════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- Run panel (always visible) -->
+  <div class="card">
+    <div class="card-header">
+      <span>▶</span>
+      <h2>Run Scenario</h2>
+      <span class="subtitle" id="last-run-time"></span>
+    </div>
+    <div class="card-body">
+      <div class="run-panel">
+        <div class="form-group">
+          <label class="form-label">Attack Type</label>
+          <select id="attack-select">
+            <option value="random">🎲 Random</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="run-btn" onclick="runScenario()">
+          <div class="spinner" id="spinner"></div>
+          <span id="run-btn-label">Analyze Threat</span>
+        </button>
+        <button class="btn btn-secondary" onclick="loadAllScenarios()">
+          All Scenarios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD VIEW ─────────────────────────────────── -->
+  <div id="view-dashboard">
+    <div id="empty-state" class="card">
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-icon">⬡</div>
+          <h3>No incident loaded</h3>
+          <p>Select an attack type above and click <strong>Analyze Threat</strong> to run the full SENTRIX pipeline.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Banner -->
+    <div id="decision-banner" class="decision-banner" style="display:none"></div>
+
+    <!-- Metrics -->
+    <div id="metrics-grid" class="metrics-grid" style="display:none"></div>
+
+    <!-- Score bars + event summary -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="row2" style="display:none">
+      <div class="card" id="score-card" style="display:none">
+        <div class="card-header"><h2>Scoring Breakdown</h2></div>
+        <div class="card-body" id="score-body"></div>
+      </div>
+      <div class="card" id="event-card" style="display:none">
+        <div class="card-header"><h2>Event Summary</h2></div>
+        <div class="card-body" id="event-body"></div>
+      </div>
+    </div>
+
+    <!-- Risk flags + reasoning -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="row3">
+      <div class="card" id="reasoning-card" style="display:none">
+        <div class="card-header"><h2>Assessment Reasoning</h2></div>
+        <div class="card-body" id="reasoning-body"></div>
+      </div>
+      <div class="card" id="rationale-card" style="display:none">
+        <div class="card-header"><h2>Decision Rationale</h2></div>
+        <div class="card-body" id="rationale-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENARIOS VIEW ─────────────────────────────────── -->
+  <div id="view-scenarios" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <h2>All Scenarios — Summary</h2>
+        <span class="subtitle" id="sc-run-time"></span>
+      </div>
+      <div class="card-body scenario-table-wrap">
+        <div id="scenarios-empty" class="empty-state" style="padding:40px 0">
+          <div class="empty-icon" style="font-size:32px">◈</div>
+          <p>Click <strong>All Scenarios</strong> to run all 10 attack types.</p>
+        </div>
+        <table class="data-table" id="scenarios-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Attack Type</th><th>Asset</th><th>Criticality</th>
+              <th>Level</th><th>Score</th><th>Decision</th>
+              <th>ETA</th><th>Actor</th><th>IOCs</th><th>ATT&CK</th>
+            </tr>
+          </thead>
+          <tbody id="scenarios-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DETECTION VIEW ─────────────────────────────────── -->
+  <div id="view-detection" style="display:none">
+    <div class="card" id="detect-card">
+      <div class="card-header"><h2>Detection — Indicators of Compromise</h2></div>
+      <div id="detect-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">◎</div><p>Run a scenario to see IOC detail.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ASSESSMENT VIEW ────────────────────────────────── -->
+  <div id="view-assessment" style="display:none">
+    <div class="card">
+      <div class="card-header"><h2>Threat Assessment — Full Scoring Detail</h2></div>
+      <div id="assess-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">◐</div><p>Run a scenario to see assessment detail.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── INTEL VIEW ─────────────────────────────────────── -->
+  <div id="view-intel" style="display:none">
+    <div class="card">
+      <div class="card-header"><h2>Threat Intelligence — Feed Enrichment</h2></div>
+      <div id="intel-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">◆</div><p>Run a scenario to see intel enrichment.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MITRE VIEW ─────────────────────────────────────── -->
+  <div id="view-mitre" style="display:none">
+    <div class="card">
+      <div class="card-header"><h2>MITRE ATT&CK Mapping — Enterprise v14</h2></div>
+      <div id="mitre-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">◇</div><p>Run a scenario to see ATT&CK mapping.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EVIDENCE VIEW ──────────────────────────────────── -->
+  <div id="view-evidence" style="display:none">
+    <div class="card">
+      <div class="card-header"><h2>Evidence Capture Plan — RFC 3227 Volatility Order</h2></div>
+      <div id="evidence-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">▣</div><p>Run a scenario to see the evidence plan.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PLAYBOOK VIEW ──────────────────────────────────── -->
+  <div id="view-playbook" style="display:none">
+    <div class="card">
+      <div class="card-header"><h2>Response Playbook</h2>
+        <div class="tabs" style="border:none;padding:0;margin-left:auto" id="playbook-tabs"></div>
+      </div>
+      <div id="playbook-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">▤</div><p>Run a scenario to see the response playbook.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EXEC LOG VIEW ──────────────────────────────────── -->
+  <div id="view-execlog" style="display:none">
+    <div class="card">
+      <div class="card-header"><h2>Execution Log</h2>
+        <span class="subtitle" id="log-summary"></span>
+      </div>
+      <div id="execlog-body">
+        <div class="empty-state" style="padding:40px"><div class="empty-icon">▥</div><p>Run a scenario to see the execution log.</p></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let currentData = null;
+let currentView = 'dashboard';
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function switchView(view, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('[id^="view-"]').forEach(v => v.style.display = 'none');
+  const target = document.getElementById('view-' + view);
+  if (target) target.style.display = '';
+  currentView = view;
+}
+
+// ── Bootstrap: load attack types ─────────────────────────────────────────────
+async function loadAttackTypes() {
+  try {
+    const res  = await fetch('/api/attack-types');
+    const list = await res.json();
+    const sel  = document.getElementById('attack-select');
+    list.forEach(({ key, label }) => {
+      const o = document.createElement('option');
+      o.value = key; o.textContent = label;
+      sel.appendChild(o);
+    });
+  } catch(e) { console.error('Could not load attack types', e); }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function colourForLevel(lvl) {
+  return {CRITICAL:'#ef4444',HIGH:'#f97316',MEDIUM:'#eab308',LOW:'#22c55e',INFORMATIONAL:'#3b82f6'}[lvl] || '#94a3b8';
+}
+function badgeForLevel(lvl) {
+  const cls = {CRITICAL:'badge-red',HIGH:'badge-orange',MEDIUM:'badge-yellow',LOW:'badge-green',INFORMATIONAL:'badge-blue'}[lvl]||'badge-gray';
+  return `<span class="badge ${cls}">${lvl}</span>`;
+}
+function badgeForDecision(dec) {
+  const cls = {
+    CONTAIN_IMMEDIATELY:'badge-red', PRESERVE_EVIDENCE_FIRST:'badge-yellow',
+    MONITOR_AND_ALERT:'badge-blue', ESCALATE_TO_HUMAN:'badge-purple'
+  }[dec]||'badge-gray';
+  const short = {
+    CONTAIN_IMMEDIATELY:'Contain', PRESERVE_EVIDENCE_FIRST:'Preserve Evidence',
+    MONITOR_AND_ALERT:'Monitor', ESCALATE_TO_HUMAN:'Escalate'
+  }[dec]||dec;
+  return `<span class="badge ${cls}">${short}</span>`;
+}
+function scoreColour(v) {
+  if (v >= 80) return '#ef4444';
+  if (v >= 60) return '#f97316';
+  if (v >= 40) return '#eab308';
+  return '#22c55e';
+}
+function scoreBar(val, label, extraClass) {
+  return `<div class="score-row">
+    <span class="score-row-label">${label}</span>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:${val}%;background:${scoreColour(val)}"></div></div>
+    <span class="score-row-val" style="color:${scoreColour(val)}">${val}</span>
+  </div>`;
+}
+function decisionIcon(dec) {
+  return {CONTAIN_IMMEDIATELY:'🔴',PRESERVE_EVIDENCE_FIRST:'🟡',MONITOR_AND_ALERT:'🔵',ESCALATE_TO_HUMAN:'🟣'}[dec]||'⚪';
+}
+function actionTag(action) {
+  const m = action.match(/^\[([^\]]+)\]/);
+  return m ? m[1] : 'ACT';
+}
+function tacticBadge(tactic) {
+  const map = {
+    'Initial Access':'badge-red','Execution':'badge-purple','Persistence':'badge-orange',
+    'Privilege Escalation':'badge-orange','Defense Evasion':'badge-gray','Credential Access':'badge-yellow',
+    'Discovery':'badge-gray','Lateral Movement':'badge-green','Collection':'badge-blue',
+    'Command and Control':'badge-green','Exfiltration':'badge-blue','Impact':'badge-red',
+  };
+  return `<span class="badge ${map[tactic]||'badge-gray'}">${tactic}</span>`;
+}
+function fmtEta(secs) {
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs/60)}m ${secs%60}s`;
+}
+function rankLabel(r) {
+  return ['','CRITICAL','HIGH','MEDIUM','LOW','STABLE'][r] || 'UNK';
+}
+
+// ── Run Scenario ─────────────────────────────────────────────────────────────
+async function runScenario() {
+  const btn     = document.getElementById('run-btn');
+  const spinner = document.getElementById('spinner');
+  const label   = document.getElementById('run-btn-label');
+  const key     = document.getElementById('attack-select').value;
+
+  btn.disabled = true;
+  spinner.classList.add('active');
+  label.textContent = 'Analyzing…';
+  document.getElementById('status-text').textContent = 'Pipeline running…';
+
+  try {
+    const res  = await fetch('/api/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ attack_type: key }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    currentData = await res.json();
+    document.getElementById('last-run-time').textContent =
+      'Last run: ' + currentData.event.timestamp;
+    document.getElementById('status-text').textContent = 'Analysis complete';
+    renderAll(currentData);
+    switchView('dashboard', document.querySelector('[data-view="dashboard"]'));
+    document.getElementById('empty-state').style.display = 'none';
+  } catch(e) {
+    alert('Error: ' + e.message);
+    document.getElementById('status-text').textContent = 'Error';
+  } finally {
+    btn.disabled = false;
+    spinner.classList.remove('active');
+    label.textContent = 'Analyze Threat';
+  }
+}
+
+// ── Load All Scenarios ────────────────────────────────────────────────────────
+async function loadAllScenarios() {
+  switchView('scenarios', document.querySelector('[data-view="scenarios"]'));
+  const btn = document.querySelector('.btn-secondary');
+  btn.textContent = 'Loading…'; btn.disabled = true;
+  document.getElementById('status-text').textContent = 'Running all scenarios…';
+  try {
+    const res  = await fetch('/api/scenarios');
+    const list = await res.json();
+    renderScenarios(list);
+    document.getElementById('sc-run-time').textContent = `${list.length} scenarios — ${new Date().toLocaleTimeString()}`;
+    document.getElementById('status-text').textContent = 'All scenarios loaded';
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { btn.textContent = 'All Scenarios'; btn.disabled = false; }
+}
+
+// ── Render Scenarios Table ────────────────────────────────────────────────────
+function renderScenarios(list) {
+  document.getElementById('scenarios-empty').style.display = 'none';
+  const tbl = document.getElementById('scenarios-table');
+  tbl.style.display = '';
+  const tbody = document.getElementById('scenarios-tbody');
+  tbody.innerHTML = '';
+  list.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.className = 'sc-row';
+    tr.onclick = () => { runSpecific(s.key); };
+    tr.innerHTML = `
+      <td><strong>${s.attack_type}</strong></td>
+      <td class="truncate" title="${s.asset_name}">${s.asset_name}</td>
+      <td>${badgeForLevel(s.criticality)}</td>
+      <td>${badgeForLevel(s.threat_level)}</td>
+      <td><strong style="color:${scoreColour(s.threat_score)}">${s.threat_score}</strong></td>
+      <td>${badgeForDecision(s.decision)}</td>
+      <td>${fmtEta(s.response_secs)}</td>
+      <td class="truncate" title="${s.actor||''}">${s.actor||'<span style="color:var(--muted)">Unknown</span>'}</td>
+      <td>${s.ioc_count}</td>
+      <td>${s.mitre_count}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function runSpecific(key) {
+  document.getElementById('attack-select').value = key;
+  await runScenario();
+}
+
+// ── Master Render ─────────────────────────────────────────────────────────────
+function renderAll(d) {
+  renderDashboard(d);
+  renderDetection(d);
+  renderAssessment(d);
+  renderIntel(d);
+  renderMitre(d);
+  renderEvidence(d);
+  renderPlaybook(d);
+  renderExecLog(d);
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDashboard(d) {
+  const a   = d.assessment;
+  const dec = d.decision;
+  const ev  = d.event;
+
+  // Decision banner
+  const banner = document.getElementById('decision-banner');
+  const bg  = dec.colour + '18';
+  const bdr = dec.colour + '55';
+  banner.style.cssText = `display:flex;background:${bg};border-color:${bdr};color:${dec.colour}`;
+  banner.innerHTML = `
+    <div class="decision-icon">${decisionIcon(dec.value)}</div>
+    <div>
+      <div class="decision-label">Response Decision</div>
+      <div class="decision-value">${dec.value.replace(/_/g,' ')}</div>
+      <div style="font-size:12px;margin-top:6px;opacity:.8">${dec.rationale[0]||''}</div>
+    </div>
+    <div class="decision-meta">
+      <div class="meta-label">Priority Score</div>
+      <div class="priority">${dec.priority_score}</div>
+      <div class="eta">⏱ ${fmtEta(dec.response_secs)} window</div>
+    </div>`;
+
+  // Metrics grid
+  const mg = document.getElementById('metrics-grid');
+  mg.style.display = 'grid';
+  mg.innerHTML = `
+    ${metric('threat', a.threat_score, 'Threat Score', a.threat_level)}
+    ${metric('severity', a.severity_score, 'Severity', '')}
+    ${metric('volatility', a.evidence_volatility, 'Evidence Volatility', '')}
+    ${metric('activity', a.attacker_activity, 'Attacker Activity', '')}
+    ${metric('criticality', a.asset_criticality_score, 'Asset Criticality', ev.asset_criticality)}`;
+
+  function metric(cls, val, lbl, sub) {
+    return `<div class="metric ${cls}">
+      <div class="metric-val" style="color:${scoreColour(val)}">${val}</div>
+      <div class="metric-label">${lbl}</div>
+      ${sub ? `<div class="metric-sub">${sub}</div>` : ''}
+    </div>`;
+  }
+
+  // Score card
+  const sc = document.getElementById('score-card');
+  sc.style.display = '';
+  document.getElementById('score-body').innerHTML = `
+    <div class="score-rows">
+      ${scoreBar(a.threat_score, 'Composite Score')}
+      ${scoreBar(a.severity_score, 'Severity')}
+      ${scoreBar(a.evidence_volatility, 'Evidence Volatility')}
+      ${scoreBar(a.attacker_activity, 'Attacker Activity')}
+      ${scoreBar(a.asset_criticality_score, 'Asset Criticality')}
+    </div>
+    <div class="risk-flags">
+      ${flag('Lateral Movement', a.lateral_movement_risk)}
+      ${flag('Data Loss Risk', a.data_loss_risk)}
+      ${flag('Persistence', a.persistence_detected)}
+    </div>`;
+
+  function flag(lbl, on) {
+    return `<span class="flag ${on?'on':'off'}">${on?'⚠':'○'} ${lbl}</span>`;
+  }
+
+  // Event card
+  const ec = document.getElementById('event-card');
+  ec.style.display = '';
+  document.getElementById('event-body').innerHTML = `
+    <table class="data-table">
+      <tr><td style="color:var(--muted);width:120px">Event ID</td><td><code>${ev.event_id}</code></td></tr>
+      <tr><td style="color:var(--muted)">Timestamp</td><td>${ev.timestamp}</td></tr>
+      <tr><td style="color:var(--muted)">Attack Type</td><td><strong>${ev.attack_type}</strong></td></tr>
+      <tr><td style="color:var(--muted)">Asset</td><td>${ev.asset_name}</td></tr>
+      <tr><td style="color:var(--muted)">Asset ID</td><td><code>${ev.asset_id}</code></td></tr>
+      <tr><td style="color:var(--muted)">Criticality</td><td>${badgeForLevel(ev.asset_criticality)}</td></tr>
+      <tr><td style="color:var(--muted)">Confidence</td><td>${a.confidence}%</td></tr>
+      <tr><td style="color:var(--muted)">IOC Count</td><td>${a.ioc_count}</td></tr>
+    </table>`;
+
+  // Reasoning
+  const rc = document.getElementById('reasoning-card');
+  rc.style.display = '';
+  document.getElementById('reasoning-body').innerHTML = `
+    <div class="reasoning-list">
+      ${a.reasoning.map(r => {
+        const isSection = r.startsWith('--');
+        return `<div class="reasoning-item ${isSection?'section':''}">${r}</div>`;
+      }).join('')}
+    </div>`;
+
+  // Rationale
+  const rrc = document.getElementById('rationale-card');
+  rrc.style.display = '';
+  document.getElementById('rationale-body').innerHTML = `
+    <div style="margin-bottom:12px">
+      <div class="section-title">Notifications</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${dec.notifications.map(n => `<div class="notif-item"><span class="notif-icon">✉</span>${n}</div>`).join('')}
+      </div>
+    </div>
+    <div class="section-title">Rationale</div>
+    <div class="reasoning-list">
+      ${dec.rationale.map(r => `<div class="reasoning-item">${r}</div>`).join('')}
+    </div>`;
+}
+
+// ── Detection ─────────────────────────────────────────────────────────────────
+function renderDetection(d) {
+  const ev = d.event;
+  const html = `
+    <div style="padding:14px 18px">
+      <div class="log-pre">${escHtml(ev.raw_log)}</div>
+    </div>
+    <div class="tabs" id="ioc-tabs">
+      <div class="tab active" onclick="iocTab('net',this)">Network <span class="tab-count">${ev.network_iocs.length}</span></div>
+      <div class="tab" onclick="iocTab('proc',this)">Processes <span class="tab-count">${ev.process_iocs.length}</span></div>
+      <div class="tab" onclick="iocTab('file',this)">Files <span class="tab-count">${ev.file_iocs.length}</span></div>
+    </div>
+    <div id="ioc-net" class="tab-panel active">
+      <table class="data-table">
+        <thead><tr><th>Source IP</th><th>Dest IP</th><th>Port</th><th>Proto</th><th>Bytes</th><th>Packets</th><th>Anomaly</th></tr></thead>
+        <tbody>${ev.network_iocs.map(n => `<tr>
+          <td class="mono">${n.src}</td><td class="mono">${n.dst}</td>
+          <td>${n.port}</td><td>${n.proto}</td>
+          <td>${fmtNum(n.bytes)}</td><td>${fmtNum(n.packets)}</td>
+          <td><span class="score-pill" style="background:${scoreColour(n.score*100)}22;color:${scoreColour(n.score*100)}">${(n.score*100).toFixed(0)}%</span></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div id="ioc-proc" class="tab-panel">
+      <table class="data-table">
+        <thead><tr><th>PID</th><th>Name</th><th>Parent</th><th>User</th><th>CPU%</th><th>Mem MB</th><th>Anomaly</th></tr></thead>
+        <tbody>${ev.process_iocs.map(p => `<tr>
+          <td>${p.pid}</td><td class="mono"><strong>${escHtml(p.name)}</strong></td>
+          <td class="mono">${escHtml(p.parent)}</td><td>${escHtml(p.user)}</td>
+          <td>${p.cpu.toFixed(1)}</td><td>${p.mem_mb.toFixed(1)}</td>
+          <td><span class="score-pill" style="background:${scoreColour(p.score*100)}22;color:${scoreColour(p.score*100)}">${(p.score*100).toFixed(0)}%</span></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div id="ioc-file" class="tab-panel">
+      <table class="data-table">
+        <thead><tr><th>Path</th><th>Action</th><th>Entropy</th><th>Exec</th><th>Anomaly</th></tr></thead>
+        <tbody>${ev.file_iocs.map(f => `<tr>
+          <td class="mono truncate" title="${escHtml(f.path)}">${escHtml(f.path)}</td>
+          <td>${f.action}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="entropy-bar"><span class="entropy-fill" style="width:${(f.entropy/8)*100}%;background:${scoreColour((f.entropy/8)*100)}"></span></span>
+              ${f.entropy.toFixed(2)}
+            </div>
+          </td>
+          <td>${f.executable ? '<span class="badge badge-red">YES</span>' : '<span class="badge badge-gray">no</span>'}</td>
+          <td><span class="score-pill" style="background:${scoreColour(f.score*100)}22;color:${scoreColour(f.score*100)}">${(f.score*100).toFixed(0)}%</span></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  document.getElementById('detect-body').innerHTML = html;
+}
+
+function iocTab(id, el) {
+  document.querySelectorAll('#ioc-tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#ioc-net,#ioc-proc,#ioc-file').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('ioc-' + id).classList.add('active');
+}
+
+// ── Assessment ────────────────────────────────────────────────────────────────
+function renderAssessment(d) {
+  const a = d.assessment;
+  document.getElementById('assess-body').innerHTML = `
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="section-title">Composite Scores</div>
+          <div class="score-rows">
+            ${scoreBar(a.threat_score,'Threat Score (composite)')}
+            ${scoreBar(a.severity_score,'Severity')}
+            ${scoreBar(a.evidence_volatility,'Evidence Volatility')}
+            ${scoreBar(a.attacker_activity,'Attacker Activity')}
+            ${scoreBar(a.asset_criticality_score,'Asset Criticality')}
+          </div>
+        </div>
+        <div>
+          <div class="section-title">Threat Level &amp; Confidence</div>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+            <div style="font-size:42px;font-weight:800;color:${colourForLevel(a.threat_level)}">${a.threat_level}</div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Detection Confidence</div>
+              ${confidenceRing(a.confidence)}
+            </div>
+          </div>
+          <div class="section-title">Risk Flags</div>
+          <div class="risk-flags">
+            <span class="flag ${a.lateral_movement_risk?'on':'off'}">⚠ Lateral Movement Risk</span>
+            <span class="flag ${a.data_loss_risk?'on':'off'}">⚠ Data Loss Risk</span>
+            <span class="flag ${a.persistence_detected?'on':'off'}">⚠ Persistence Detected</span>
+          </div>
+          <div class="section-title" style="margin-top:16px">IOC Summary</div>
+          <div style="font-size:28px;font-weight:800;color:var(--accent)">${a.ioc_count}</div>
+          <div style="font-size:12px;color:var(--muted)">Indicators of Compromise</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function confidenceRing(pct) {
+  const r = 28; const c = 2*Math.PI*r;
+  const dash = (pct/100)*c;
+  const col  = pct >= 80 ? '#22c55e' : pct >= 60 ? '#eab308' : '#ef4444';
+  return `<svg width="70" height="70" viewBox="0 0 70 70">
+    <circle cx="35" cy="35" r="${r}" fill="none" stroke="#1e293b" stroke-width="6"/>
+    <circle cx="35" cy="35" r="${r}" fill="none" stroke="${col}" stroke-width="6"
+      stroke-dasharray="${dash} ${c}" stroke-linecap="round"
+      transform="rotate(-90 35 35)"/>
+    <text x="35" y="40" text-anchor="middle" fill="${col}" font-size="14" font-weight="800">${pct}%</text>
+  </svg>`;
+}
+
+// ── Threat Intel ──────────────────────────────────────────────────────────────
+function renderIntel(d) {
+  const i = d.intel;
+  const hits = i.ioc_matches || [];
+  document.getElementById('intel-body').innerHTML = `
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="metric" style="border-top:3px solid var(--red)">
+          <div class="metric-val" style="color:var(--text);font-size:22px">${i.actor||'Unknown'}</div>
+          <div class="metric-label">Threat Actor</div>
+        </div>
+        <div class="metric" style="border-top:3px solid var(--orange)">
+          <div class="metric-val" style="color:var(--text);font-size:22px">${i.nation||'Unknown'}</div>
+          <div class="metric-label">Nation-State</div>
+        </div>
+        <div class="metric" style="border-top:3px solid var(--purple)">
+          <div class="metric-val" style="color:var(--text);font-size:16px">${i.campaign||'Unknown'}</div>
+          <div class="metric-label">Campaign</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+        <div style="background:#0f172a;border-radius:6px;padding:12px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:var(--accent)">${i.matches}</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase">IOCs Matched</div>
+        </div>
+        <div style="background:#0f172a;border-radius:6px;padding:12px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:${scoreColour(i.confidence)}">${i.confidence}%</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase">Feed Confidence</div>
+        </div>
+        <div style="background:#0f172a;border-radius:6px;padding:12px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:var(--red)">+${i.boost}</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase">Severity Boost</div>
+        </div>
+      </div>
+      ${hits.length ? `
+        <div class="section-title">Feed Hits</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${hits.map(h => `
+            <div class="feed-hit">
+              <div>
+                <div class="feed-name">${h.provider}</div>
+                <div class="feed-ioc">${h.ioc_type}: ${h.ioc_value}</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${h.malicious}/${h.total} malicious</div>
+                <div class="conf-bar"><div class="conf-fill" style="width:${h.confidence}%;background:${scoreColour(h.confidence)}"></div></div>
+                <div style="margin-top:4px">${h.threat_names.map(n=>`<span class="badge badge-red" style="font-size:10px;margin-right:3px">${escHtml(n)}</span>`).join('')}</div>
+              </div>
+              <div style="text-align:right;font-size:13px;font-weight:700;color:${scoreColour(h.confidence)}">${h.confidence}%</div>
+            </div>`).join('')}
+        </div>` : ''}
+      <div class="section-title" style="margin-top:16px">Enrichment Notes</div>
+      <div class="reasoning-list">
+        ${i.notes.map(n => `<div class="reasoning-item">${escHtml(n)}</div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── MITRE ATT&CK ─────────────────────────────────────────────────────────────
+function renderMitre(d) {
+  const m = d.mitre;
+  document.getElementById('mitre-body').innerHTML = `
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div style="background:#0f172a;padding:14px;border-radius:6px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Kill-Chain Stage</div>
+          <div style="font-size:14px;font-weight:600">${m.kill_chain}</div>
+        </div>
+        <div style="background:#0f172a;padding:14px;border-radius:6px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Primary Tactic</div>
+          <div style="font-size:14px;font-weight:600">${m.primary_tactic}</div>
+        </div>
+      </div>
+      <div class="section-title">Techniques (${m.techniques.length})</div>
+      <div class="techniques-grid">
+        ${m.techniques.map(t => `
+          <div class="technique-row">
+            <div>
+              <div class="technique-id">${t.id}</div>
+              ${t.sub ? '<span class="badge badge-gray" style="font-size:9px;margin-top:2px">SUB</span>' : ''}
+            </div>
+            <div class="technique-body">
+              <div class="technique-name">${escHtml(t.name)}</div>
+              <div class="technique-tactic">${tacticBadge(t.tactic)}</div>
+              ${t.mitigations.length ? `
+                <div class="technique-mitigations">
+                  Mitigations: ${t.mitigations.map(m => `<code>${escHtml(m.split(' - ')[0])}</code>`).join(' ')}
+                </div>` : ''}
+              ${t.detections.length ? `
+                <div class="technique-mitigations">
+                  Detections: ${t.detections.map(dd => `<code>${escHtml(dd.split(' - ')[0])}</code>`).join(' ')}
+                </div>` : ''}
+            </div>
+            <a href="${t.url}" target="_blank" style="font-size:11px;color:var(--accent);align-self:flex-start;flex-shrink:0">ATT&amp;CK ↗</a>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:14px">
+        <a href="${m.navigator_url}" target="_blank" class="btn btn-secondary" style="font-size:12px;display:inline-flex">
+          Open in ATT&amp;CK Navigator ↗
+        </a>
+      </div>
+    </div>`;
+}
+
+// ── Evidence ──────────────────────────────────────────────────────────────────
+function renderEvidence(d) {
+  const items = d.evidence;
+  const totalBytes = items.reduce((s,e)=>s+e.size_raw,0);
+  document.getElementById('evidence-body').innerHTML = `
+    <div class="card-body">
+      <div style="display:flex;gap:16px;margin-bottom:16px">
+        <div style="background:#0f172a;padding:12px 16px;border-radius:6px">
+          <div style="font-size:22px;font-weight:800;color:var(--accent)">${items.length}</div>
+          <div style="font-size:11px;color:var(--muted)">Evidence Items</div>
+        </div>
+        <div style="background:#0f172a;padding:12px 16px;border-radius:6px">
+          <div style="font-size:22px;font-weight:800;color:var(--orange)">${fmtBytes(totalBytes)}</div>
+          <div style="font-size:11px;color:var(--muted)">Total Size</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${items.map(e => `
+          <div class="evidence-item ev-rank-${e.rank}">
+            <div>
+              <div class="ev-rank-badge" style="color:${e.rank<=2?'var(--red)':e.rank==3?'var(--yellow)':'var(--green)'}">${rankLabel(e.rank)}</div>
+              <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">${e.category.toUpperCase()}</div>
+            </div>
+            <div>
+              <div class="ev-desc">${escHtml(e.desc)}</div>
+              <div class="ev-method">Method: <code>${escHtml(e.method)}</code></div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">ID: <code>${e.id}</code></div>
+            </div>
+            <div class="ev-size">${e.size}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Playbook ──────────────────────────────────────────────────────────────────
+function renderPlaybook(d) {
+  const dec = d.decision;
+  const tabs = [
+    {id:'pb-imm',   label:'Immediate',   count:dec.immediate.length,   items:dec.immediate,   cls:'immediate'},
+    {id:'pb-cont',  label:'Containment', count:dec.containment.length, items:dec.containment, cls:'contain'},
+    {id:'pb-evid',  label:'Evidence',    count:d.evidence.length,      items:d.decision.containment, cls:'evidence', raw: d.evidence},
+    {id:'pb-for',   label:'Forensics',   count:dec.forensic.length,    items:dec.forensic,    cls:'forensic'},
+  ];
+  document.getElementById('playbook-body').innerHTML = `
+    <div class="tabs" id="pb-tabs">
+      ${tabs.map((t,i) => `<div class="tab ${i===0?'active':''}" onclick="pbTab('${t.id}',this)">${t.label} <span class="tab-count">${t.count}</span></div>`).join('')}
+    </div>
+    <div id="pb-imm" class="tab-panel active"><div class="action-list">${dec.immediate.map(a=>actionItem(a,'immediate')).join('')}</div></div>
+    <div id="pb-cont" class="tab-panel"><div class="action-list">${dec.containment.map(a=>actionItem(a,'contain')).join('')}</div></div>
+    <div id="pb-evid" class="tab-panel">
+      ${d.evidence.map(e => `<div class="action-item evidence" style="margin-bottom:6px">
+        <span class="act-tag" style="background:rgba(249,115,22,.15);color:var(--orange)">RANK ${e.rank}</span>
+        <div class="act-text"><strong>${e.category.toUpperCase()}</strong> — ${escHtml(e.desc)}<br><span style="color:var(--muted);font-size:11px">Method: ${escHtml(e.method)} | Size: ${e.size}</span></div>
+      </div>`).join('')}
+    </div>
+    <div id="pb-for" class="tab-panel"><div class="action-list">${dec.forensic.map(a=>actionItem(a,'forensic')).join('')}</div></div>`;
+}
+
+function pbTab(id, el) {
+  document.querySelectorAll('#pb-tabs .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#pb-imm,#pb-cont,#pb-evid,#pb-for').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+function actionItem(action, cls) {
+  const tag  = actionTag(action);
+  const rest = action.replace(/^\[[^\]]+\]\s*/,'');
+  const tagCol = {
+    ISOLATE:'var(--red)',BLOCK:'var(--red)',STOP:'var(--red)',KILL:'var(--red)',
+    CREDS:'var(--orange)',REVOKE:'var(--orange)',PURGE:'var(--orange)',
+    FORENSIC:'var(--purple)',ALERT:'var(--accent)',TICKET:'var(--accent)',
+  }[tag] || 'var(--muted)';
+  return `<div class="action-item ${cls}">
+    <span class="act-tag" style="background:${tagCol}22;color:${tagCol}">${tag}</span>
+    <span class="act-text">${escHtml(rest)}</span>
+  </div>`;
+}
+
+// ── Execution Log ─────────────────────────────────────────────────────────────
+function renderExecLog(d) {
+  const log  = d.execution_log;
+  const ok   = log.filter(e=>e.ok).length;
+  const fail = log.filter(e=>!e.ok).length;
+  document.getElementById('log-summary').textContent = `${ok} succeeded · ${fail} failed`;
+  document.getElementById('execlog-body').innerHTML = `
+    <div style="padding:16px 18px">
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="background:#0f172a;padding:10px 16px;border-radius:6px;border-left:3px solid var(--green)">
+          <div style="font-size:22px;font-weight:800;color:var(--green)">${ok}</div>
+          <div style="font-size:11px;color:var(--muted)">Succeeded</div>
+        </div>
+        <div style="background:#0f172a;padding:10px 16px;border-radius:6px;border-left:3px solid var(--red)">
+          <div style="font-size:22px;font-weight:800;color:var(--red)">${fail}</div>
+          <div style="font-size:11px;color:var(--muted)">Failed</div>
+        </div>
+      </div>
+      <div style="max-height:500px;overflow-y:auto">
+        ${log.map(e => `
+          <div class="log-item">
+            <span class="log-status ${e.ok?'log-ok':'log-fail'}">${e.ok?'[OK]':'[FAIL]'}</span>
+            <span class="log-text">${escHtml(e.action)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtNum(n) {
+  return n >= 1_000_000 ? (n/1_000_000).toFixed(1)+'M' : n >= 1_000 ? (n/1_000).toFixed(1)+'K' : String(n);
+}
+function fmtBytes(n) {
+  if (n >= 1_073_741_824) return (n/1_073_741_824).toFixed(1)+' GB';
+  if (n >= 1_048_576)     return (n/1_048_576).toFixed(1)+' MB';
+  if (n >= 1_024)         return (n/1_024).toFixed(1)+' KB';
+  return n+' B';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadAttackTypes();
+</script>
+</body>
+</html>
